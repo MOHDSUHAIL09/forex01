@@ -1,0 +1,6 @@
+flask
+flask-socketio
+flask-cors
+MetaTrader5; sys_platform=="win32"
+requests
+colorama

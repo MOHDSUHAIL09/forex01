@@ -1,0 +1,31 @@
+{
+  "symbol": "XAUUSD",
+  "starting_lot": 0.01,
+  "take_profit_points": 8,
+  "first_level_tp_points": 3,
+  "grid_step_points": 6,
+  "max_grid_levels": 9,
+  "max_drawdown_usd": 500,
+  "trade_direction": "BUY",
+  "magic_number": 202611,
+  "connection_type": "cloud",
+  "metaapi": {
+    "token": "",
+    "enabled": true
+  },
+  "mt5": {
+    "login": 10013464817,
+    "password": "JqV-Pe0v",
+    "server": "MetaQuotes-Demo",
+    "terminal_path": "C:\\Program Files\\MetaTrader 5\\terminal64.exe",
+    "auto_launch": true
+  },
+  "simulator": {
+    "initial_balance": 10000,
+    "spread_points": 2
+  },
+  "dashboard": {
+    "host": "127.0.0.1",
+    "port": 5000
+  }
+}

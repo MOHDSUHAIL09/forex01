@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  forexbot:
+    build: .
+    container_name: forexbot-app
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - HOST=0.0.0.0
+    volumes:
+      - ./config.json:/app/config.json

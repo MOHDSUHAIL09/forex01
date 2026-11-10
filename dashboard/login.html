@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ForexBot — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #0a0e1a;
+      --surface:   #111827;
+      --border:    rgba(99,120,180,0.15);
+      --accent:    #6C63FF;
+      --accent2:   #3ECFCF;
+      --profit:    #22d3a0;
+      --loss:      #ff5e7a;
+      --info:      #60a5fa;
+      --text:      #e2e8f0;
+      --muted:     #4a5d80;
+      --radius:    14px;
+      --font:      'Inter', sans-serif;
+      --mono:      'JetBrains Mono', monospace;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(108,99,255,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(62,207,207,0.06) 0%, transparent 50%);
+    }
+    .login-wrap {
+      width: 100%;
+      max-width: 480px;
+      padding: 24px;
+    }
+    .logo-block {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .logo-block svg { margin-bottom: 12px; }
+    .logo-block h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #6C63FF, #3ECFCF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .logo-block p {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
+      padding: 4px;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    .form-group { margin-bottom: 18px; }
+    label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted); font-family: var(--font); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 20px 0; color: var(--muted); font-size: 12px;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: var(--border);
+    }
+    .advanced-toggle {
+      background: none; border: none; color: var(--info);
+      font-size: 12px; cursor: pointer; font-family: var(--font);
+      text-decoration: underline; padding: 0;
+    }
+    .advanced { display: none; }
+    .advanced.open { display: block; }
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), #5a52e0);
+      color: #fff;
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.2s, transform 0.1s;
+      position: relative;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:active { transform: scale(0.99); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.07); }
+    .result-box {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: var(--mono);
+      display: none;
+      line-height: 1.6;
+    }
+    .result-box.ok  { display:block; background:rgba(34,211,160,0.08); border:1px solid rgba(34,211,160,0.3); color:var(--profit); }
+    .result-box.err { display:block; background:rgba(255,94,122,0.08); border:1px solid rgba(255,94,122,0.3); color:var(--loss); }
+    .result-box.loading { display:block; background:rgba(96,165,250,0.08); border:1px solid rgba(96,165,250,0.3); color:var(--info); }
+    .footer-links {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .footer-links a { color: var(--info); text-decoration: none; }
+    .sim-note {
+      background: rgba(108,99,255,0.08);
+      border: 1px solid rgba(108,99,255,0.2);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #a5b4fc;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+<div class="login-wrap">
+
+  <!-- Logo -->
+  <div class="logo-block">
+    <svg width="52" height="52" viewBox="0 0 32 32" fill="none">
+      <path d="M16 2L28 8V24L16 30L4 24V8L16 2Z" fill="url(#g)" opacity="0.9"/>
+      <path d="M10 16L14 20L22 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <defs>
+        <linearGradient id="g" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#6C63FF"/>
+          <stop offset="1" stop-color="#3ECFCF"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <h1>ForexBot</h1>
+    <p>Martingale Strategy · XAUUSD · Multi-User</p>
+  </div>
+
+  <div class="card">
+    <!-- Mode Tabs -->
+    <div class="tabs">
+      <button class="tab active" id="tabLive" onclick="switchTab('live')">🔴 Live MT5</button>
+      <button class="tab" id="tabSim"  onclick="switchTab('simulator')">📊 Simulator</button>
+    </div>
+
+    <!-- LIVE MT5 FORM -->
+    <div id="formLive">
+      <div class="form-group">
+        <label>Connection Engine</label>
+        <div class="tabs" style="margin-bottom:0">
+          <button type="button" class="tab active" id="btnConnCloud" onclick="setConnType('cloud')">☁️ Cloud (MetaApi)</button>
+          <button type="button" class="tab" id="btnConnLocal" onclick="setConnType('local')">🖥️ Desktop MT5</button>
+        </div>
+      </div>
+
+      <div class="sim-note" id="connNote" style="margin-top:12px;margin-bottom:16px;background:rgba(62,207,207,0.08);border-color:rgba(62,207,207,0.25);color:#5eead4">
+        ☁️ <strong>Cloud Engine:</strong> No MT5 terminal software needed on your PC. Connects directly to broker servers in the cloud.
+      </div>
+
+      <div class="form-group" id="tokenGroup">
+        <label>MetaApi API Token <span style="color:var(--muted);font-size:10px">(From app.metaapi.cloud - free tier supported)</span></label>
+        <input id="lToken" type="password" placeholder="Paste your MetaApi Token here" />
+      </div>
+
+      <div class="form-group">
+        <label>Your Name / Label</label>
+        <input id="lName" type="text" placeholder="e.g. Ali, Trader1" />
+      </div>
+      <div class="form-group">
+        <label>MT5 Login (Account Number)</label>
+        <input id="lLogin" type="number" placeholder="e.g. 10013464817" />
+      </div>
+      <div class="form-group">
+        <label>MT5 Password</label>
+        <input id="lPassword" type="password" placeholder="Your MT5 password" />
+      </div>
+      <div class="form-group">
+        <label>Broker Server</label>
+        <input id="lServer" type="text" placeholder="e.g. MetaQuotes-Demo, YumePrime-Trade" />
+      </div>
+
+      <button class="advanced-toggle" onclick="toggleAdvanced()">+ Advanced Strategy Settings</button>
+      <div class="advanced" id="advancedSection">
+        <br/>
+        <div class="row2">
+          <div class="form-group">
+            <label>Symbol</label>
+            <input id="lSymbol" type="text" placeholder="XAUUSD" value="XAUUSD" />
+          </div>
+          <div class="form-group">
+            <label>Starting Lot</label>
+            <input id="lLot" type="number" placeholder="0.01" value="0.01" step="0.01" />
+          </div>
+        </div>
+        <div class="row2">
+          <div class="form-group">
+            <label>TP Points</label>
+            <input id="lTp" type="number" placeholder="8" value="8" />
+          </div>
+          <div class="form-group">
+            <label>Grid Step</label>
+            <input id="lGrid" type="number" placeholder="6" value="6" />
+          </div>
+        </div>
+        <div class="row2">
+          <div class="form-group">
+            <label>Max Levels</label>
+            <input id="lLevels" type="number" placeholder="9" value="9" />
+          </div>
+          <div class="form-group">
+            <label>Max Drawdown $</label>
+            <input id="lDrawdown" type="number" placeholder="500" value="500" />
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-secondary" onclick="testConnection()">🔌 Test Connection First</button>
+      <div class="result-box" id="testResult"></div>
+
+      <button class="btn-primary" id="btnLogin" onclick="login('live')">▶ Connect & Start Trading</button>
+    </div>
+
+    <!-- SIMULATOR FORM -->
+    <div id="formSim" style="display:none">
+      <div class="sim-note">
+        📊 Simulator mode uses a GBM price model — no real MT5 needed. Great for testing strategy.
+      </div>
+      <div class="form-group">
+        <label>Your Name / Label</label>
+        <input id="sName" type="text" placeholder="e.g. Ali, Tester1" />
+      </div>
+      <div class="row2">
+        <div class="form-group">
+          <label>Start Price</label>
+          <input id="sPrice" type="number" value="2650" step="1" />
+        </div>
+        <div class="form-group">
+          <label>Scenario</label>
+          <select id="sScenario" style="width:100%;padding:12px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(99,120,180,0.15);border-radius:8px;color:#e2e8f0;font-family:inherit;font-size:13px;outline:none;">
+            <option value="ranging">Ranging (Best)</option>
+            <option value="trending_up">Trending Up</option>
+            <option value="trending_down">Trending Down</option>
+            <option value="volatile">Volatile</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="form-group">
+          <label>Starting Lot</label>
+          <input id="sLot" type="number" value="0.01" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label>Tick Speed (ms)</label>
+          <input id="sSpeed" type="number" value="400" step="100" />
+        </div>
+      </div>
+      <button class="btn-primary" id="btnSim" onclick="login('simulator')">▶ Start Simulator</button>
+    </div>
+
+    <div class="result-box" id="loginResult"></div>
+  </div>
+
+  <div class="footer-links">
+    <a href="/admin">Admin Panel</a> &nbsp;·&nbsp;
+    ForexBot v2.0 · Multi-User Edition
+  </div>
+</div>
+
+<script>
+  let currentTab = 'live';
+  let currentConnType = 'cloud';
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('tabLive').classList.toggle('active', tab === 'live');
+    document.getElementById('tabSim').classList.toggle('active',  tab === 'simulator');
+    document.getElementById('formLive').style.display = tab === 'live' ? '' : 'none';
+    document.getElementById('formSim').style.display  = tab === 'simulator' ? '' : 'none';
+  }
+
+  function setConnType(type) {
+    currentConnType = type;
+    document.getElementById('btnConnCloud').classList.toggle('active', type === 'cloud');
+    document.getElementById('btnConnLocal').classList.toggle('active', type === 'local');
+    const note = document.getElementById('connNote');
+    const tokenGrp = document.getElementById('tokenGroup');
+    if (type === 'cloud') {
+      note.innerHTML = '☁️ <strong>Cloud Engine:</strong> No MT5 terminal software needed on your PC. Connects directly to broker servers in the cloud.';
+      note.style.color = '#5eead4';
+      note.style.borderColor = 'rgba(62,207,207,0.25)';
+      tokenGrp.style.display = 'block';
+    } else {
+      note.innerHTML = '🖥️ <strong>Desktop Terminal:</strong> Connects to MetaTrader 5 installed on this computer.';
+      note.style.color = '#a5b4fc';
+      note.style.borderColor = 'rgba(108,99,255,0.25)';
+      tokenGrp.style.display = 'none';
+    }
+  }
+
+  function toggleAdvanced() {
+    document.getElementById('advancedSection').classList.toggle('open');
+  }
+
+  async function testConnection() {
+    const result   = document.getElementById('testResult');
+    const login    = document.getElementById('lLogin').value;
+    const password = document.getElementById('lPassword').value;
+    const server   = document.getElementById('lServer').value;
+    const token    = document.getElementById('lToken')?.value || '';
+    const pathEl   = document.getElementById('lPath');
+    const path     = pathEl ? pathEl.value : '';
+
+    if (!login || !server) {
+      result.className = 'result-box err';
+      result.textContent = 'Please fill Login and Server.';
+      return;
+    }
+    result.className = 'result-box loading';
+    result.textContent = currentConnType === 'cloud'
+      ? 'Connecting via MetaApi Cloud...'
+      : 'Testing connection to local MT5...';
+
+    try {
+      const res  = await fetch('/api/mt5/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          login: parseInt(login),
+          password,
+          server,
+          path,
+          connection_type: currentConnType,
+          metaapi_token: token
+        }),
+      });
+      const data = await res.json();
+      if (data.status === 'connected') {
+        const a = data.account;
+        result.className = 'result-box ok';
+        result.innerHTML =
+          `Connected OK (${data.type === 'cloud' ? 'Cloud' : 'Desktop'})!<br>` +
+          `Account: ${a.login} | ${a.company}<br>` +
+          `Balance: ${a.currency} ${a.balance.toFixed(2)} | Leverage: 1:${a.leverage}`;
+      } else {
+        result.className = 'result-box err';
+        result.textContent = 'Error: ' + data.message;
+      }
+    } catch (e) {
+      result.className = 'result-box err';
+      result.textContent = 'Network error: ' + e.message;
+    }
+  }
+
+  async function login(mode) {
+    const result = document.getElementById('loginResult');
+    result.className = 'result-box loading';
+    result.textContent = mode === 'live' ? 'Connecting to MT5...' : 'Starting simulator...';
+
+    let body = { mode };
+    if (mode === 'live') {
+      body.name     = document.getElementById('lName').value.trim() || 'Trader';
+      body.login    = parseInt(document.getElementById('lLogin').value);
+      body.password = document.getElementById('lPassword').value;
+      body.server   = document.getElementById('lServer').value;
+      body.symbol      = document.getElementById('lSymbol').value || 'XAUUSD';
+      body.starting_lot = parseFloat(document.getElementById('lLot').value || 0.01);
+      body.tp_points    = parseInt(document.getElementById('lTp').value || 8);
+      body.grid_step    = parseInt(document.getElementById('lGrid').value || 6);
+      body.max_levels   = parseInt(document.getElementById('lLevels').value || 9);
+      body.max_drawdown = parseFloat(document.getElementById('lDrawdown').value || 500);
+      body.connection_type = currentConnType;
+      body.metaapi_token   = document.getElementById('lToken')?.value || '';
+
+      if (!body.login || !body.server) {
+        result.className = 'result-box err';
+        result.textContent = 'Please fill Login and Server.';
+        return;
+      }
+
+      if (body.metaapi_token) {
+        localStorage.setItem('metaapi_token', body.metaapi_token);
+      }
+    } else {
+      body.name       = document.getElementById('sName').value.trim() || 'Tester';
+      body.start_price = parseFloat(document.getElementById('sPrice').value || 2650);
+      body.scenario    = document.getElementById('sScenario').value;
+      body.starting_lot = parseFloat(document.getElementById('sLot').value || 0.01);
+      body.speed_ms    = parseInt(document.getElementById('sSpeed').value || 400);
+    }
+
+    try {
+      // 1. Register session
+      const reg = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const regData = await reg.json();
+      if (!regData.session_id) {
+        result.className = 'result-box err';
+        result.textContent = 'Session error: ' + (regData.error || 'Unknown');
+        return;
+      }
+
+      // 2. Start bot
+      const start = await fetch('/api/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const startData = await start.json();
+
+      if (startData.status === 'started') {
+        result.className = 'result-box ok';
+        result.textContent = 'Success! Redirecting to dashboard...';
+        setTimeout(() => window.location.href = '/dashboard', 1000);
+      } else {
+        result.className = 'result-box err';
+        result.textContent = 'Start failed: ' + startData.message;
+      }
+    } catch (e) {
+      result.className = 'result-box err';
+      result.textContent = 'Error: ' + e.message;
+    }
+  }
+
+  // Auto-fill from localStorage
+  window.onload = () => {
+    const sv = localStorage.getItem('mt5_server');
+    const lg = localStorage.getItem('mt5_login');
+    const tk = localStorage.getItem('metaapi_token');
+    if (sv) document.getElementById('lServer').value = sv;
+    if (lg) document.getElementById('lLogin').value  = lg;
+    if (tk && document.getElementById('lToken')) document.getElementById('lToken').value = tk;
+  };
+</script>
+</body>
+</html>

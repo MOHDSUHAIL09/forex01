@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ForexBot — Admin Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:#0a0e1a; --surface:#111827; --border:rgba(99,120,180,0.15);
+      --accent:#6C63FF; --accent2:#3ECFCF; --profit:#22d3a0; --loss:#ff5e7a;
+      --info:#60a5fa; --warning:#fbbf24; --text:#e2e8f0; --muted:#4a5d80;
+      --radius:12px; --font:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg); color:var(--text); font-family:var(--font); min-height:100vh; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-title { font-size:18px; font-weight:700; color:var(--accent); }
+    .header-sub   { font-size:12px; color:var(--muted); margin-top:2px; }
+    .header-right { display:flex; gap:12px; align-items:center; }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      padding: 24px 32px 0;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .stat-label { font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--muted); margin-bottom:8px; }
+    .stat-value { font-size:28px; font-weight:700; font-family:var(--mono); }
+    .stat-value.green { color: var(--profit); }
+    .stat-value.blue  { color: var(--info); }
+    .stat-value.yellow{ color: var(--warning); }
+
+    .main { padding: 24px 32px; }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .panel-header h2 { font-size:15px; font-weight:600; }
+
+    table { width:100%; border-collapse:collapse; }
+    th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 14px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(99,120,180,0.06);
+      font-family: var(--mono);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .badge-running { background:rgba(34,211,160,0.15); color:var(--profit); }
+    .badge-stopped { background:rgba(74,93,128,0.2);   color:var(--muted); }
+    .badge-live    { background:rgba(255,94,122,0.15); color:var(--loss); }
+    .badge-sim     { background:rgba(108,99,255,0.15); color:#a5b4fc; }
+
+    .btn-kick {
+      padding: 5px 12px;
+      border: 1px solid rgba(255,94,122,0.4);
+      border-radius: 6px;
+      background: rgba(255,94,122,0.08);
+      color: var(--loss);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all 0.2s;
+    }
+    .btn-kick:hover { background:rgba(255,94,122,0.2); }
+
+    .btn-refresh {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all 0.2s;
+    }
+    .btn-refresh:hover { background: rgba(255,255,255,0.08); }
+
+    .profit-pos { color: var(--profit); }
+    .profit-neg { color: var(--loss); }
+
+    .empty { text-align:center; padding:40px; color:var(--muted); font-size:14px; }
+    .live-pulse {
+      display:inline-block;
+      width:8px; height:8px; border-radius:50%;
+      background:var(--profit);
+      box-shadow:0 0 8px var(--profit);
+      animation: pulse 1.5s infinite;
+      margin-right:6px;
+    }
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:0.5; transform:scale(1.3); }
+    }
+
+    .last-update { font-size:11px; color:var(--muted); }
+    a.nav-link {
+      color: var(--info); text-decoration:none; font-size:13px;
+      padding: 8px 14px; border-radius:8px; border:1px solid rgba(96,165,250,0.3);
+      background: rgba(96,165,250,0.06); transition: all 0.2s;
+    }
+    a.nav-link:hover { background: rgba(96,165,250,0.12); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="header-title">ForexBot — Admin Panel</div>
+    <div class="header-sub">Real-time view of all active user sessions</div>
+  </div>
+  <div class="header-right">
+    <span class="last-update" id="lastUpdate">Auto-refresh: 5s</span>
+    <button class="btn-refresh" onclick="loadSessions()">↻ Refresh</button>
+    <a class="nav-link" href="/login">+ New Session</a>
+    <a class="nav-link" href="/dashboard">My Dashboard</a>
+  </div>
+</header>
+
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-label">Total Sessions</div>
+    <div class="stat-value blue" id="statTotal">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Active / Running</div>
+    <div class="stat-value green" id="statActive">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Live MT5</div>
+    <div class="stat-value" style="color:var(--loss)" id="statLive">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Simulator</div>
+    <div class="stat-value" style="color:#a5b4fc" id="statSim">—</div>
+  </div>
+</div>
+
+<!-- Sessions Table -->
+<div class="main">
+  <div class="panel">
+    <div class="panel-header">
+      <h2><span class="live-pulse"></span>All User Sessions</h2>
+      <span style="font-size:12px;color:var(--muted)" id="tableTime">—</span>
+    </div>
+    <div id="tableWrap">
+      <div class="empty">Loading sessions...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  async function loadSessions() {
+    try {
+      const res  = await fetch('/api/admin/sessions');
+      const data = await res.json();
+
+      document.getElementById('statTotal').textContent  = data.total;
+      document.getElementById('statActive').textContent = data.active;
+      document.getElementById('statLive').textContent   = data.sessions.filter(s => s.mode === 'live').length;
+      document.getElementById('statSim').textContent    = data.sessions.filter(s => s.mode === 'simulator').length;
+      document.getElementById('tableTime').textContent  = 'Updated: ' + new Date().toLocaleTimeString();
+
+      if (!data.sessions.length) {
+        document.getElementById('tableWrap').innerHTML =
+          '<div class="empty">No active sessions · <a href="/login" style="color:var(--info)">Start one</a></div>';
+        return;
+      }
+
+      const rows = data.sessions.map(s => {
+        const pnl = s.total_profit || 0;
+        const pnlClass = pnl >= 0 ? 'profit-pos' : 'profit-neg';
+        const pnlStr   = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(2);
+        const runBadge = s.is_running
+          ? '<span class="badge badge-running">RUNNING</span>'
+          : '<span class="badge badge-stopped">STOPPED</span>';
+        const modeBadge = s.mode === 'live'
+          ? '<span class="badge badge-live">LIVE MT5</span>'
+          : '<span class="badge badge-sim">SIMULATOR</span>';
+        return `<tr>
+          <td style="font-weight:600;color:var(--text)">${s.user_name}</td>
+          <td>${runBadge}</td>
+          <td>${modeBadge}</td>
+          <td>${s.mt5_login || '—'}</td>
+          <td>${s.mt5_server || '—'}</td>
+          <td style="color:var(--info)">$${(s.balance||0).toFixed(2)}</td>
+          <td>${s.grid_levels} / 8</td>
+          <td class="${pnlClass}">${pnlStr}</td>
+          <td>${s.win_count}W / ${s.loss_count}L</td>
+          <td>${s.started_at || '—'}</td>
+          <td>
+            <button class="btn-kick" onclick="kickSession('${s.session_id}', '${s.user_name}')">Stop</button>
+          </td>
+        </tr>`;
+      }).join('');
+
+      document.getElementById('tableWrap').innerHTML = `
+        <table>
+          <thead><tr>
+            <th>User</th><th>Status</th><th>Mode</th><th>MT5 ID</th><th>Server</th>
+            <th>Balance</th><th>Grid</th><th>Total P/L</th><th>W/L</th>
+            <th>Started</th><th>Action</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    } catch (e) {
+      document.getElementById('tableWrap').innerHTML =
+        `<div class="empty">Error loading sessions: ${e.message}</div>`;
+    }
+  }
+
+  async function kickSession(sid, name) {
+    if (!confirm(`Stop session for "${name}"?`)) return;
+    await fetch(`/api/admin/kick/${sid}`, { method: 'POST' });
+    loadSessions();
+  }
+
+  loadSessions();
+  setInterval(loadSessions, 5000);  // Auto-refresh every 5s
+</script>
+</body>
+</html>

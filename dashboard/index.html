@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ForexBot — Martingale Strategy Dashboard</title>
+  <meta name="description" content="Live Martingale Forex Trading Bot Dashboard for XAUUSD. Monitor open positions, equity curve, and bot performance in real-time." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <path d="M16 2L28 8V24L16 30L4 24V8L16 2Z" fill="url(#logoGrad)" opacity="0.9"/>
+        <path d="M10 16L14 20L22 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <defs>
+          <linearGradient id="logoGrad" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#6C63FF"/>
+            <stop offset="1" stop-color="#3ECFCF"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <span>ForexBot</span>
+    </div>
+    <div class="strategy-badge">
+      <span class="dot"></span>
+      Martingale Strategy · XAUUSD
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="user-pill" id="userPill">—</div>
+    <div class="connection-status" id="connStatus">
+      <span class="conn-dot disconnected"></span>
+      Disconnected
+    </div>
+    <div class="header-price" id="headerPrice">— —</div>
+    <div class="server-time" id="serverTime">—</div>
+    <a href="/admin" class="header-link">Admin</a>
+    <button class="header-btn-logout" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<!-- ═══════════════ TOP METRICS ═══════════════ -->
+<section class="metrics-row">
+  <div class="metric-card" id="mcBalance">
+    <div class="metric-icon">💰</div>
+    <div class="metric-body">
+      <div class="metric-label">Balance</div>
+      <div class="metric-value" id="mBalance">$10,000.00</div>
+    </div>
+  </div>
+  <div class="metric-card" id="mcEquity">
+    <div class="metric-icon">📊</div>
+    <div class="metric-body">
+      <div class="metric-label">Equity</div>
+      <div class="metric-value" id="mEquity">$10,000.00</div>
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-icon">📈</div>
+    <div class="metric-body">
+      <div class="metric-label">Unrealized P/L</div>
+      <div class="metric-value" id="mUnrealized">$0.00</div>
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-icon">🏆</div>
+    <div class="metric-body">
+      <div class="metric-label">Total Profit</div>
+      <div class="metric-value profit" id="mProfit">$0.00</div>
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-icon">⚡</div>
+    <div class="metric-body">
+      <div class="metric-label">Grid Levels</div>
+      <div class="metric-value" id="mLevels">0 / 9</div>
+    </div>
+  </div>
+  <!-- TP Target card — updates dynamically -->
+  <div class="metric-card tp-card">
+    <div class="metric-icon">🎯</div>
+    <div class="metric-body">
+      <div class="metric-label">TP Target <span id="mTpRule" style="color:var(--accent-2);font-size:9px;text-transform:none;letter-spacing:0"></span></div>
+      <div class="metric-value" id="mTpTarget">—</div>
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-icon">🎲</div>
+    <div class="metric-body">
+      <div class="metric-label">Win / Loss</div>
+      <div class="metric-value" id="mWinLoss">0 / 0</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ MT5 ACCOUNT INFO BAR ═══════════════ -->
+<div class="mt5-bar" id="mt5Bar" style="display:none">
+  <div class="mt5-bar-item">
+    <span class="mt5-bar-label">Account</span>
+    <span class="mt5-bar-val" id="mt5Login">—</span>
+  </div>
+  <div class="mt5-bar-item">
+    <span class="mt5-bar-label">Broker</span>
+    <span class="mt5-bar-val" id="mt5Company">—</span>
+  </div>
+  <div class="mt5-bar-item">
+    <span class="mt5-bar-label">Server</span>
+    <span class="mt5-bar-val" id="mt5Server">—</span>
+  </div>
+  <div class="mt5-bar-item">
+    <span class="mt5-bar-label">Leverage</span>
+    <span class="mt5-bar-val" id="mt5Leverage">—</span>
+  </div>
+  <div class="mt5-bar-item">
+    <span class="mt5-bar-label">Currency</span>
+    <span class="mt5-bar-val" id="mt5Currency">—</span>
+  </div>
+  <div class="mt5-bar-item">
+    <span class="mt5-bar-label">Free Margin</span>
+    <span class="mt5-bar-val" id="mt5FreeMargin">—</span>
+  </div>
+  <div class="mt5-bar-item live-indicator">
+    <span class="live-dot"></span>
+    MT5 LIVE
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN GRID ═══════════════ -->
+<main class="main-grid">
+
+  <!-- LEFT: Charts -->
+  <section class="charts-panel">
+    <div class="panel-card">
+      <div class="panel-header">
+        <h2>Equity Curve</h2>
+        <div class="chart-legend">
+          <span class="legend-dot equity-dot"></span><span>Equity</span>
+          <span class="legend-dot balance-dot"></span><span>Balance</span>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="equityChart"></canvas>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-header">
+        <h2>Price Feed</h2>
+        <span class="live-badge">LIVE</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="priceChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIGHT: Controls + Positions -->
+  <aside class="right-panel">
+
+    <!-- Bot Controls -->
+    <div class="panel-card controls-card">
+      <div class="panel-header">
+        <h2>Bot Controls</h2>
+        <div class="bot-status-badge" id="botStatusBadge">STOPPED</div>
+      </div>
+
+      <div class="control-group">
+        <label>Mode</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" id="btnSimMode" onclick="setMode('simulator')">📊 Simulator</button>
+          <button class="toggle-btn" id="btnLiveMode" onclick="setMode('live')">🔴 Live MT5</button>
+        </div>
+      </div>
+
+      <!-- ── MT5 Credentials (shown in live mode) ── -->
+      <div id="mt5CredsGroup" style="display:none">
+        <div class="control-group">
+          <label>MT5 Login (Account No.)</label>
+          <input type="number" id="inputLogin" class="ctrl-input" placeholder="e.g. 12345678" />
+        </div>
+        <div class="control-group">
+          <label>MT5 Password</label>
+          <input type="password" id="inputPassword" class="ctrl-input" placeholder="Your MT5 password" />
+        </div>
+        <div class="control-group">
+          <label>Broker Server</label>
+          <input type="text" id="inputServer" class="ctrl-input" placeholder="e.g. ICMarkets-Live01" />
+        </div>
+        <div class="control-group">
+          <label>MT5 Terminal Path <span style="color:var(--text-muted);font-size:10px">(optional)</span></label>
+          <input type="text" id="inputPath" class="ctrl-input" placeholder="C:\Program Files\MetaTrader 5\terminal64.exe" />
+        </div>
+        <div class="control-group">
+          <button class="btn btn-test" id="btnTest" onclick="testMT5()">🔌 Test Connection</button>
+        </div>
+        <div class="mt5-conn-result" id="mt5ConnResult"></div>
+      </div>
+
+      <!-- ── Simulator options (hidden in live mode) ── -->
+      <div id="scenarioGroup" class="control-group">
+        <label>Market Scenario</label>
+        <select id="selectScenario" class="ctrl-select">
+          <option value="ranging">📊 Ranging (Best)</option>
+          <option value="trending_up">📈 Trending Up</option>
+          <option value="trending_down">📉 Trending Down</option>
+          <option value="volatile">⚡ Volatile</option>
+        </select>
+      </div>
+
+      <div class="control-group" id="simSpeedGroup">
+        <label>Tick Speed (ms) <span style="color:var(--text-muted);font-size:10px">(simulator)</span></label>
+        <div class="range-wrapper">
+          <input type="range" id="speedSlider" min="100" max="2000" value="400" step="100" />
+          <span id="speedVal">400ms</span>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-start" id="btnStart" onclick="startBot()">▶ Start</button>
+        <button class="btn btn-stop" id="btnStop" onclick="stopBot()" disabled>⏹ Stop</button>
+        <button class="btn btn-reset" id="btnReset" onclick="resetBot()">↺ Reset</button>
+      </div>
+      <div class="btn-row" style="padding-top:0">
+        <button class="btn btn-emergency" id="btnEmergency" onclick="emergencyClose()">🚨 Emergency Close All</button>
+      </div>
+    </div>
+
+    <!-- Strategy Rules -->
+    <div class="panel-card rules-card">
+      <div class="panel-header">
+        <h2>Strategy Rules</h2>
+      </div>
+      <div class="rules-list">
+
+        <div class="rule-item rule-highlight">
+          <span class="rule-icon">🟢</span>
+          <div>
+            <div class="rule-title">Level 1 TP (Early Exit)</div>
+            <div class="rule-val">+3 pts from L1 entry → close &amp; reset</div>
+          </div>
+        </div>
+
+        <div class="rule-item rule-highlight2">
+          <span class="rule-icon">🎯</span>
+          <div>
+            <div class="rule-title">Level 2+ TP</div>
+            <div class="rule-val">+8 pts from LAST entry → close all &amp; reset</div>
+          </div>
+        </div>
+
+        <div class="rule-item">
+          <span class="rule-icon">📐</span>
+          <div>
+            <div class="rule-title">Grid Step</div>
+            <div class="rule-val">Open next after 6 pts adverse move</div>
+          </div>
+        </div>
+
+        <div class="rule-item">
+          <span class="rule-icon">x2</span>
+          <div>
+            <div class="rule-title">Lot Doubling</div>
+            <div class="rule-val">0.01→0.02→0.04→0.08→0.16→0.32→0.64→1.28→2.56</div>
+          </div>
+        </div>
+
+        <div class="rule-item">
+          <span class="rule-icon">🔄</span>
+          <div>
+            <div class="rule-title">On Win</div>
+            <div class="rule-val">Reset grid, restart L1 at 0.01 lots</div>
+          </div>
+        </div>
+
+        <div class="rule-item">
+          <span class="rule-icon">🛡</span>
+          <div>
+            <div class="rule-title">Safety Stop</div>
+            <div class="rule-val">Max 9 levels / $500 drawdown</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </aside>
+</main>
+
+<!-- ═══════════════ POSITIONS TABLE ═══════════════ -->
+<section class="positions-section">
+  <div class="panel-card">
+    <div class="panel-header">
+      <h2>Open Positions (Grid)</h2>
+      <span class="positions-count" id="posCount">0 open</span>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="positionsTable">
+        <thead>
+          <tr>
+            <th>Level</th>
+            <th>Direction</th>
+            <th>Entry Price</th>
+            <th>Lot Size</th>
+            <th>Take Profit</th>
+            <th>P/L (pts)</th>
+            <th>P/L ($)</th>
+            <th>Opened</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="positionsBody">
+          <tr class="empty-row"><td colspan="9">No open positions · Start the bot to begin</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ LOG ═══════════════ -->
+<section class="log-section">
+  <div class="panel-card">
+    <div class="panel-header">
+      <h2>Event Log</h2>
+      <button class="btn-small" onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-wrap" id="logWrap">
+      <div class="log-entry info">🚀 ForexBot dashboard loaded. Click Start to begin.</div>
+    </div>
+  </div>
+</section>
+
+<!-- notification toast -->
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
