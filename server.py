@@ -2,7 +2,7 @@
 ForexBot — Multi-User Flask + Socket.IO Server
 Each user gets an isolated bot session with their own MT5 credentials.
 """
-
+import os
 import json
 import copy
 import threading
