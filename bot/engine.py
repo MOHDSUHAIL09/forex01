@@ -109,13 +109,12 @@ class MartingaleEngine:
             if not self.is_running:
                 return
             self.is_running = False
-            if self._live_mode and self.connector:
-                # Positions are closed by server.py via close_all_with_pnl()
-                pass
-            else:
-                for t in self.grid:
-                    if t.status == "OPEN":
-                        self._close_trade(t, self.current_price, "STOPPED")
+            for t in self.grid:
+                if t.status == "OPEN":
+                    t.status = "CLOSED_STOPPED"
+                    t.closed_at = datetime.now().strftime("%H:%M:%S")
+            self.history.extend(self.grid)
+            self.grid.clear()
             self._emit("bot_stopped", self._get_state())
 
     def reset(self):

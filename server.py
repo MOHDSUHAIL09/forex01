@@ -423,22 +423,21 @@ def emergency_close():
     if not bs:
         return jsonify({"status": "error", "message": "No session"}), 401
 
-    if not (bs.connector and bs.connector.connected):
-        return jsonify({"status": "error", "message": "Not connected to MT5"}), 400
+    pnl_report = None
+    if bs.connector and bs.connector.connected:
+        bs.connector.stop_tick_feed()
+        pnl_report = bs.connector.close_all_with_pnl("EmergencyClose")
+        socketio.emit("positions_closed", pnl_report, room=bs.session_id)
 
-    # Stop bot first
+    # Stop bot & clear grid
     if bs.engine:
-        bs.engine.is_running = False
-    bs.connector.stop_tick_feed()
+        bs.engine.stop()
+    if bs.simulator:
+        bs.simulator.stop()
+        bs.simulator = None
 
-    # Close all with P/L
-    pnl_report = bs.connector.close_all_with_pnl("EmergencyClose")
-
-    # Emit to dashboard
-    socketio.emit("positions_closed", pnl_report, room=bs.session_id)
     socketio.emit("bot_stopped", {"reason": "emergency", "pnl_report": pnl_report}, room=bs.session_id)
-
-    return jsonify({"status": "closed", "pnl_report": pnl_report})
+    return jsonify({"status": "closed", "pnl_report": pnl_report or {}})
 
 
 # ─────────────────────────────────────────────────────────

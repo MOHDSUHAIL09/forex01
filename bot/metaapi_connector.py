@@ -464,12 +464,16 @@ class MetaApiConnector:
                 return report
 
             positions = res.json()
-            # Filter symbol
-            my_pos = [p for p in positions if p.get("symbol") == self.symbol]
+            # Filter symbol (accept current symbol and any gold aliases)
+            gold_keys = (self.symbol.upper(), "XAU", "GOLD")
+            my_pos = [
+                p for p in positions
+                if any(k in str(p.get("symbol", "")).upper() for k in gold_keys)
+            ]
             report["total_trades"] = len(my_pos)
 
             for pos in my_pos:
-                pos_id = str(pos.get("id"))
+                pos_id = str(pos.get("id") or pos.get("positionId") or "")
                 profit = float(pos.get("unrealizedProfit", pos.get("profit", 0.0)))
                 direction = "BUY" if pos.get("type") in (0, "POSITION_TYPE_BUY") else "SELL"
 
@@ -497,12 +501,32 @@ class MetaApiConnector:
                 if is_closed:
                     report["success_count"] += 1
                     report["total_pnl"] += round(profit, 2)
+                    print(f"[MetaApi] Position {pos_id} closed | P/L: ${profit:+.2f}", flush=True)
                 else:
                     report["failed_count"] += 1
+                    print(f"[MetaApi] Failed to close position {pos_id}: {c_data}", flush=True)
 
                 report["closed"].append(trade_record)
 
+            # Also check locally tracked positions
+            for trade_id, tracked_id in list(self._position_ids.items()):
+                if any(str(p.get("id") or p.get("positionId")) == str(tracked_id) for p in my_pos):
+                    continue
+                try:
+                    c_res = self.session.post(
+                        f"{self.client_url}/users/current/accounts/{self.account_id}/trade",
+                        headers=self.headers, json={"actionType": "POSITION_CLOSE_ID", "positionId": str(tracked_id)}, timeout=10
+                    )
+                    c_data = c_res.json()
+                    if c_res.status_code == 200 and c_data.get("numericCode") in (10009, 10008, 0):
+                        report["success_count"] += 1
+                        report["closed"].append({"ticket": str(tracked_id), "status": "closed", "pnl": 0.0})
+                except Exception:
+                    pass
+            self._position_ids.clear()
+
             report["total_pnl"] = round(report["total_pnl"], 2)
+            print(f"[MetaApi] close_all_with_pnl ({reason}): {report['success_count']} closed | Total P/L: ${report['total_pnl']:+.2f}", flush=True)
         except Exception as e:
             report["error"] = str(e)
 

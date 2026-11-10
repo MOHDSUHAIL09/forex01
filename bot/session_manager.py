@@ -84,12 +84,22 @@ class SessionManager:
 
     def _cleanup(self, session: BotSession):
         try:
-            if session.engine and session.engine.is_running:
-                session.engine.stop()
-            if session.simulator:
-                session.simulator.stop()
+            # 1. Close all open broker trades on connector first!
             if session.connector and session.connector.connected:
                 session.connector.stop_tick_feed()
+                pnl = session.connector.close_all_with_pnl("Logout")
+                print(f"[SessionManager] Closed all open trades on logout/cleanup for {session.user_name}: {pnl.get('total_trades', 0)} closed.", flush=True)
                 session.connector.disconnect()
+                session.connector = None
+
+            # 2. Stop trading engine & clear memory
+            if session.engine:
+                session.engine.stop()
+                session.engine.grid.clear()
+
+            # 3. Stop simulator if any
+            if session.simulator:
+                session.simulator.stop()
+                session.simulator = None
         except Exception as e:
-            print(f"[SessionManager] Cleanup error for {session.session_id}: {e}")
+            print(f"[SessionManager] Cleanup error for {session.session_id}: {e}", flush=True)

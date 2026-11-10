@@ -159,6 +159,7 @@ socket.on('max_levels_reached', (data) => {
 socket.on('bot_started', () => { setBotRunning(true); });
 socket.on('bot_stopped', (data) => {
   setBotRunning(false);
+  updatePositionsTable([]);
   const reason = data && data.reason === 'emergency' ? 'Emergency' : 'Stop';
   addLog(`${reason}: Bot stopped`, 'warning');
   if (data && data.pnl_report) showPnlModal(data.pnl_report);
