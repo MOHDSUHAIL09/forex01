@@ -20,10 +20,14 @@ from bot.mt5_connector   import MT5Connector
 from bot.metaapi_connector import MetaApiConnector
 from bot.session_manager import SessionManager, BotSession
 
-# ── Base config (no credentials here) ────────────────────
+# ── Base config ──────────────────────────────────────────
 def load_base_config() -> dict:
     with open("config.json", encoding="utf-8") as f:
-        return json.load(f)
+        cfg = json.load(f)
+    env_token = os.environ.get("METAAPI_TOKEN")
+    if env_token:
+        cfg.setdefault("metaapi", {})["token"] = env_token.strip()
+    return cfg
 
 BASE_CONFIG = load_base_config()
 

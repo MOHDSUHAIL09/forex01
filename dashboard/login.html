@@ -228,12 +228,12 @@
       </div>
 
       <div class="sim-note" id="connNote" style="margin-top:12px;margin-bottom:16px;background:rgba(62,207,207,0.08);border-color:rgba(62,207,207,0.25);color:#5eead4">
-        ☁️ <strong>Cloud Engine:</strong> No MT5 terminal software needed on your PC. Connects directly to broker servers in the cloud.
+        ☁️ <strong>Cloud Engine:</strong> MetaApi Key is pre-saved in server config. Connects directly to broker servers in the cloud.
       </div>
 
-      <div class="form-group" id="tokenGroup">
-        <label>MetaApi API Token <span style="color:var(--muted);font-size:10px">(From app.metaapi.cloud - free tier supported)</span></label>
-        <input id="lToken" type="password" placeholder="Paste your MetaApi Token here" />
+      <div class="form-group" id="tokenGroup" style="display:none">
+        <label>MetaApi API Token <span style="color:var(--muted);font-size:10px">(Optional — pre-saved in server config)</span></label>
+        <input id="lToken" type="password" placeholder="Pre-configured in server config" />
       </div>
 
       <div class="form-group">
@@ -359,10 +359,10 @@
     const note = document.getElementById('connNote');
     const tokenGrp = document.getElementById('tokenGroup');
     if (type === 'cloud') {
-      note.innerHTML = '☁️ <strong>Cloud Engine:</strong> No MT5 terminal software needed on your PC. Connects directly to broker servers in the cloud.';
+      note.innerHTML = '☁️ <strong>Cloud Engine:</strong> MetaApi Key is pre-saved in server config. No MT5 terminal software needed on your PC.';
       note.style.color = '#5eead4';
       note.style.borderColor = 'rgba(62,207,207,0.25)';
-      tokenGrp.style.display = 'block';
+      tokenGrp.style.display = 'none';
     } else {
       note.innerHTML = '🖥️ <strong>Desktop Terminal:</strong> Connects to MetaTrader 5 installed on this computer.';
       note.style.color = '#a5b4fc';
