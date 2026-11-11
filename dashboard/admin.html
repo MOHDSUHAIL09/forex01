@@ -87,6 +87,32 @@
     .badge-stopped { background:rgba(74,93,128,0.2);   color:var(--muted); }
     .badge-live    { background:rgba(255,94,122,0.15); color:var(--loss); }
     .badge-sim     { background:rgba(108,99,255,0.15); color:#a5b4fc; }
+    .badge-cloud   { background:rgba(62,207,207,0.15); color:var(--accent2); }
+
+    .pwd-cell { display:flex; align-items:center; gap:6px; font-family:var(--mono); }
+    .pwd-text { background:rgba(0,0,0,0.3); padding:3px 8px; border-radius:4px; font-size:12px; }
+    .btn-icon {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      padding: 3px 7px;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+    .btn-icon:hover { background: rgba(255,255,255,0.15); color:#fff; }
+    .btn-delete-user {
+      padding: 4px 10px;
+      border: 1px solid rgba(255,94,122,0.3);
+      border-radius: 6px;
+      background: rgba(255,94,122,0.08);
+      color: var(--loss);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-delete-user:hover { background: rgba(255,94,122,0.25); }
 
     .btn-kick {
       padding: 5px 12px;
@@ -175,6 +201,10 @@
     <div class="stat-label">Simulator</div>
     <div class="stat-value" style="color:#a5b4fc" id="statSim">—</div>
   </div>
+  <div class="stat-card">
+    <div class="stat-label">Saved Accounts (Backup)</div>
+    <div class="stat-value" style="color:var(--accent2)" id="statSavedUsers">—</div>
+  </div>
 </div>
 
 <!-- Sessions Table -->
@@ -186,6 +216,24 @@
     </div>
     <div id="tableWrap">
       <div class="empty">Loading sessions...</div>
+    </div>
+  </div>
+
+  <!-- User Credentials Backup Panel -->
+  <div class="panel" style="margin-top:24px;">
+    <div class="panel-header">
+      <div>
+        <h2>🔐 User Credentials Backup (All Users ID & Password)</h2>
+        <span style="font-size:12px;color:var(--muted)">Saved automatically upon registration, test, or bot start</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <input type="text" id="userSearchInput" placeholder="Search login or name..." oninput="filterUserBackups()" style="background:rgba(0,0,0,0.3);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;width:180px;">
+        <a class="btn-refresh" href="/api/admin/users/export" download="users_backup.json" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">📥 Export JSON</a>
+        <button class="btn-refresh" onclick="loadUserBackups()">↻ Refresh</button>
+      </div>
+    </div>
+    <div id="backupTableWrap">
+      <div class="empty">Loading credentials backup...</div>
     </div>
   </div>
 </div>
@@ -256,8 +304,131 @@
     loadSessions();
   }
 
+  let allBackupUsers = [];
+
+  async function loadUserBackups() {
+    try {
+      const res = await fetch('/api/admin/users');
+      const data = await res.json();
+      allBackupUsers = data.users || [];
+      document.getElementById('statSavedUsers').textContent = allBackupUsers.length;
+      renderBackupTable(allBackupUsers);
+    } catch (e) {
+      document.getElementById('backupTableWrap').innerHTML =
+        `<div class="empty">Error loading user backups: ${e.message}</div>`;
+    }
+  }
+
+  function filterUserBackups() {
+    const q = (document.getElementById('userSearchInput').value || '').toLowerCase().trim();
+    if (!q) {
+      renderBackupTable(allBackupUsers);
+      return;
+    }
+    const filtered = allBackupUsers.filter(u =>
+      (u.name && u.name.toLowerCase().includes(q)) ||
+      (u.login && String(u.login).toLowerCase().includes(q)) ||
+      (u.server && u.server.toLowerCase().includes(q))
+    );
+    renderBackupTable(filtered);
+  }
+
+  function renderBackupTable(users) {
+    if (!users.length) {
+      document.getElementById('backupTableWrap').innerHTML =
+        '<div class="empty">No backup accounts found yet. Accounts appear when users register, test MT5, or start trading.</div>';
+      return;
+    }
+
+    const rows = users.map((u, idx) => {
+      const connBadge = u.conn_type === 'cloud'
+        ? '<span class="badge badge-cloud">Cloud MetaApi</span>'
+        : '<span class="badge badge-live">Desktop MT5</span>';
+
+      const pwdId = `pwd_${idx}`;
+      const safePwd = (u.password || '').replace(/"/g, '&quot;');
+
+      return `<tr>
+        <td style="font-weight:600;color:var(--text);">${escapeHtml(u.name || '—')}</td>
+        <td style="font-family:var(--mono);font-weight:bold;color:var(--info);">${escapeHtml(String(u.login))}</td>
+        <td>
+          <div class="pwd-cell">
+            <span class="pwd-text" id="${pwdId}" data-raw="${safePwd}">••••••••</span>
+            <button class="btn-icon" onclick="togglePwd('${pwdId}')" title="Show/Hide">👁</button>
+            <button class="btn-icon" onclick="copyPwd('${pwdId}')" title="Copy password">📋</button>
+          </div>
+        </td>
+        <td style="font-family:var(--mono);font-size:12px;">${escapeHtml(u.server || '—')}</td>
+        <td>${connBadge}</td>
+        <td style="font-family:var(--mono);">${escapeHtml(u.symbol || 'XAUUSD')} <span style="color:var(--muted);font-size:11px;">(${u.lot_size || 0.01})</span></td>
+        <td style="font-size:11px;color:var(--muted);">${u.created_at || '—'}</td>
+        <td style="font-size:11px;color:var(--text);">${u.last_seen || '—'}</td>
+        <td>
+          <button class="btn-delete-user" onclick="deleteUserBackup('${escapeHtml(String(u.login))}', '${escapeHtml(u.name || '')}')">Delete</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('backupTableWrap').innerHTML = `
+      <table>
+        <thead><tr>
+          <th>User Name</th><th>MT5 Login</th><th>Password</th><th>Server</th>
+          <th>Mode</th><th>Symbol (Lot)</th><th>Registered</th><th>Last Active</th><th>Action</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function togglePwd(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const raw = el.getAttribute('data-raw') || '';
+    if (el.textContent === '••••••••') {
+      el.textContent = raw || '(empty)';
+      el.style.color = '#ffd166';
+    } else {
+      el.textContent = '••••••••';
+      el.style.color = '';
+    }
+  }
+
+  function copyPwd(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const raw = el.getAttribute('data-raw') || '';
+    if (!raw) {
+      alert('Password is empty');
+      return;
+    }
+    navigator.clipboard.writeText(raw).then(() => {
+      alert('Password copied to clipboard!');
+    }).catch(() => {
+      prompt('Copy password:', raw);
+    });
+  }
+
+  async function deleteUserBackup(login, name) {
+    if (!confirm(`Delete saved backup credentials for "${name || login}"?`)) return;
+    try {
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(login)}`, { method: 'DELETE' });
+      if (res.ok) {
+        loadUserBackups();
+      } else {
+        alert('Failed to delete user backup');
+      }
+    } catch (e) {
+      alert('Error deleting user: ' + e.message);
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   loadSessions();
-  setInterval(loadSessions, 5000);  // Auto-refresh every 5s
+  loadUserBackups();
+  setInterval(loadSessions, 5000);  // Auto-refresh sessions every 5s
+  setInterval(loadUserBackups, 15000); // Auto-refresh user backup every 15s
 </script>
 </body>
 </html>
